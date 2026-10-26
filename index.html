@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>K线之王</title>
+<style>
+/* ========== 主题色板 ========== */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-num: "DIN Alternate", "Helvetica Neue", "Roboto", "PingFang SC", sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* --- 浅色主题（现代轻量风 B）--- */
+[data-theme="light"] {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --chart-bg: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --up: #dc4c4c;
+  --dn: #2faa6a;
+  --accent: #2563eb;
+  --accent-soft: rgba(37,99,235,0.08);
+  --overlay-bg: rgba(0,0,0,0.45);
+  --hover-bg: rgba(0,0,0,0.03);
+  --grid: rgba(0,0,0,0.04);
+  --danger-bg: rgba(220,76,76,0.08);
+  --success-bg: rgba(47,170,106,0.08);
+}
+
+/* --- 深色主题（Apple Design 风 D）--- */
+[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-elevated: #2c2c2e;
+  --chart-bg: #000000;
+  --text-primary: #ffffff;
+  --text-secondary: #8e8e93;
+  --text-tertiary: #636366;
+  --border: #2c2c2e;
+  --border-subtle: #1c1c1e;
+  --up: #ff453a;
+  --dn: #30d158;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10,132,255,0.12);
+  --overlay-bg: rgba(0,0,0,0.75);
+  --hover-bg: rgba(255,255,255,0.05);
+  --grid: rgba(255,255,255,0.04);
+  --danger-bg: rgba(255,69,58,0.12);
+  --success-bg: rgba(48,209,88,0.12);
+}
+
+/* ========== 基础重置 ========== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text-primary);
+  font-family:var(--font-sans);font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+.hidden{display:none!important}
+
+/* ========== 通用组件 ========== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  border:none;border-radius:var(--radius-md);font-family:inherit;font-size:14px;
+  font-weight:500;padding:10px 20px;cursor:pointer;transition:transform .12s,opacity .12s;
+  background:var(--surface);color:var(--text-primary);border:1px solid var(--border);
+}
+.btn:active{transform:scale(0.96)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+.btn-primary{
+  background:var(--up);color:#fff;border-color:transparent;
+}
+.btn-secondary{
+  background:var(--surface-elevated);color:var(--text-secondary);border:1px solid var(--border);
+}
+.btn-accent{
+  background:var(--accent);color:#fff;border-color:transparent;
+}
+
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;padding:3px 8px;border-radius:var(--radius-sm);
+  background:var(--border-subtle);color:var(--text-secondary);
+  letter-spacing:0.3px;
+}
+.tag.active{background:var(--accent-soft);color:var(--accent)}
+
+/* ========== 主题切换按钮（在HUD内） ========== */
+#themeToggle{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--surface-elevated);border:1px solid var(--border);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;flex:none;
+  transition:transform .15s;
+}
+#themeToggle:active{transform:scale(0.9)}
+
+/* ========== 开始界面 ========== */
+#startScreen{
+  min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:20px 24px calc(40px + env(safe-area-inset-bottom, 0px));position:relative;
+}
+.start-card{
+  width:100%;max-width:400px;background:var(--surface);
+  border-radius:var(--radius-lg);padding:32px 24px;
+  box-shadow:var(--shadow-md);border:1px solid var(--border);
+}
+.logo{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
+.logo-sub{font-size:13px;color:var(--text-secondary);margin-bottom:28px}
+
+.row{margin-bottom:18px}
+.row-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
+  color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+
+select{
+  width:100%;appearance:none;-webkit-appearance:none;
+  background:var(--bg);color:var(--text-primary);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;font-family:inherit;font-size:14px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+select:focus{outline:none;border-color:var(--accent)}
+
+.toggle-group{display:flex;gap:8px}
+.toggle-group .btn{flex:1;padding:10px;font-size:13px}
+.toggle-group .btn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+.info-btn{
+  width:16px;height:16px;border-radius:50%;border:1px solid var(--border);
+  font-size:10px;color:var(--text-tertiary);display:inline-flex;
+  align-items:center;justify-content:center;cursor:pointer;flex:none;
+  position:relative;user-select:none;background:var(--surface);
+}
+/* 桌面端悬停显示气泡提示 */
+.info-btn::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%) scale(.95);width:200px;padding:8px 10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  box-shadow:var(--shadow-md);font-size:11px;line-height:1.5;color:var(--text-secondary);
+  opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:50;
+  white-space:normal;text-align:left;
+}
+.info-btn:hover::after{opacity:1;transform:translateX(-50%) scale(1)}
+
+#recFull .lb-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid var(--border);font-size:13px}
+#recFull .lb-date{color:var(--text-tertiary);font-size:11px;flex-shrink:0;width:64px}
+#recFull .lb-name{flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ========== 排行榜 ========== */
+.lb-title{font-size:11px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:16px 0 8px}
+.lb-row{
+  display:flex;align-items:center;gap:8px;font-size:13px;
+  padding:9px 0;border-top:1px solid var(--border-subtle);
+}
+.lb-row.me{background:var(--accent-soft);border-radius:var(--radius-sm);padding:9px 8px;margin:0 -8px}
+.lb-rank{width:22px;flex:none;font-family:var(--font-num);font-weight:700;text-align:center;color:var(--text-tertiary)}
+.lb-rank.r1{color:#f59e0b}.lb-rank.r2{color:#9ca3af}.lb-rank.r3{color:#b45309}
+.lb-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.lb-meta{flex:none;font-size:11px;color:var(--text-tertiary)}
+.lb-ret{flex:none;font-family:var(--font-num);font-weight:600;font-size:14px;min-width:70px;text-align:right}
+.lb-rating{flex:none;width:18px;text-align:center;font-weight:700}
+.lb-empty{padding:14px 0;font-size:12px;color:var(--text-tertiary);text-align:center;border-top:1px solid var(--border-subtle)}
+
+#lbSubmit{display:flex;gap:8px;margin:8px 0 4px}
+#lbSubmit input{
+  flex:1;min-width:0;background:var(--bg);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 12px;font-family:inherit;font-size:14px;
+}
+#lbSubmit input:focus{outline:none;border-color:var(--accent)}
+#lbSubmit .btn{flex:none;padding:10px 16px;font-size:13px}
+#lbDone{font-size:12px;color:var(--text-secondary);padding:8px 0 4px}
+
+/* ========== 登录 / 个人中心 ========== */
+#authBox{margin-bottom:20px}
+.auth-login-btn{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-hint{margin-top:8px;font-size:11px;color:var(--text-tertiary);text-align:center}
+.auth-user{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  cursor:pointer;transition:border-color .15s;
+}
+.auth-user:active{border-color:var(--accent)}
+.avatar{
+  width:36px;height:36px;border-radius:50%;flex:none;
+  background:var(--accent);color:#fff;font-weight:600;font-size:15px;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.auth-user .uinfo{flex:1;min-width:0;text-align:left}
+.auth-user .uname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auth-user .uid{font-size:11px;color:var(--text-tertiary)}
+.auth-user .ugo{color:var(--text-tertiary);font-size:12px;flex:none}
+
+/* 扫码弹窗 */
+#qrModal .panel{max-width:360px;text-align:center}
+#qrBox{
+  width:280px;height:280px;margin:12px auto;border:1px solid var(--border);
+  border-radius:var(--radius-md);overflow:hidden;background:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+#qrBox iframe{width:100%;height:100%;border:none}
+#qrBox .qr-mock{padding:20px;color:var(--text-secondary);font-size:13px;line-height:1.8}
+#qrBox input{
+  width:100%;margin-top:8px;padding:10px 12px;font-size:14px;font-family:inherit;
+  background:var(--bg);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);
+}
+#qrBox input:focus{outline:none;border-color:var(--accent)}
+#qrModal .qr-tip{font-size:12px;color:var(--text-tertiary);margin-bottom:14px}
+
+/* 个人中心 */
+#userScreen .panel{max-width:480px}
+.uc-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.uc-head .avatar{width:52px;height:52px;font-size:20px}
+.uc-head .uinfo{flex:1;min-width:0}
+.uc-head .uname{font-size:17px;font-weight:700}
+.uc-head .uid{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+.uc-edit{display:flex;gap:8px;margin-bottom:16px}
+.uc-edit input{
+  flex:1;min-width:0;background:var(--bg);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 12px;font-family:inherit;font-size:14px;
+}
+.uc-edit input:focus{outline:none;border-color:var(--accent)}
+.uc-edit .btn{flex:none;padding:10px 14px;font-size:13px}
+.uc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.uc-stats .cell{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 4px;text-align:center}
+.uc-stats .cell span{display:block;font-size:10px;color:var(--text-tertiary);margin-bottom:3px}
+.uc-stats .cell b{font-size:15px;font-family:var(--font-num);font-weight:600}
+.uc-rec{max-height:280px;overflow:auto}
+.uc-rec .lb-row{font-size:12px}
+.uc-rec .lb-date{flex:none;width:86px;color:var(--text-tertiary);font-size:11px}
+.uc-btns{display:flex;gap:10px;margin-top:16px}
+.uc-btns .btn{flex:1;min-height:44px}
+@media (max-width:380px){.uc-stats{grid-template-columns:repeat(2,1fr)}}
+
+/* ========== 游戏界面 ========== */
+#gameScreen{height:100vh;display:flex;flex-direction:column;position:relative}
+
+/* HUD */
+#hud{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex:none;min-height:52px;
+}
+.hud-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.hud-left b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-left .tag{flex:none}
+
+.hud-right{display:flex;align-items:center;gap:16px}
+.hud-stat{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.hud-stat .num{
+  font-family:var(--font-num);font-size:18px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.hud-stat .lbl{font-size:10px;color:var(--text-tertiary);letter-spacing:0.5px}
+.hud-split{font-size:9px;margin-top:1px;white-space:nowrap;font-family:var(--font-num)}
+
+.pos{color:var(--up)} .neg{color:var(--dn)}
+
+/* 主区域 */
+#main{flex:1;display:flex;min-height:0;position:relative;overflow:hidden}
+#chartWrap{flex:1;position:relative;min-width:0;background:var(--chart-bg)}
+#chart{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+/* 交易记录抽屉（移动端） */
+#side{
+  width:240px;flex:none;border-left:1px solid var(--border);
+  background:var(--surface);padding:12px;overflow:auto;font-size:12px;
+  display:flex;flex-direction:column;
+}
+#side h4{
+  font-size:11px;color:var(--text-tertiary);font-weight:500;
+  letter-spacing:0.8px;margin-bottom:10px;text-transform:uppercase;
+}
+#tradeList{list-style:none;overflow:auto;flex:1}
+#tradeList li{
+  padding:8px 0;border-bottom:1px solid var(--border-subtle);
+  font-size:12px;display:flex;align-items:center;gap:6px;
+}
+#tradeList li:last-child{border-bottom:none}
+
+/* 交易记录移动端抽屉 */
+#tradeDrawer{
+  position:fixed;left:0;right:0;bottom:0;z-index:90;
+  background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  border-top:1px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,0.15);
+  max-height:60vh;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .3s ease;
+}
+#tradeDrawer.open{transform:translateY(0)}
+#tradeDrawer .drawer-handle{
+  width:36px;height:4px;border-radius:2px;background:var(--border);
+  margin:8px auto;flex:none;
+}
+#tradeDrawer .drawer-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px 8px;flex:none;
+}
+#tradeDrawer .drawer-header h4{font-size:13px;font-weight:600}
+#tradeDrawer .drawer-body{padding:0 16px 16px;overflow:auto;flex:1}
+
+/* 工具栏 */
+#toolbar{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;
+  border-top:1px solid var(--border);background:var(--surface);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;flex:none;
+  scrollbar-width:none;
+}
+#toolbar::-webkit-scrollbar{display:none}
+
+.toolbar-btn{
+  padding:5px 12px;font-size:12px;font-weight:500;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:transparent;color:var(--text-secondary);
+  cursor:pointer;transition:all .12s;white-space:nowrap;flex:none;
+}
+.toolbar-btn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.toolbar-divider{width:1px;height:16px;background:var(--border);flex:none;margin:0 2px}
+
+/* 操作区 */
+#controls{
+  display:flex;flex-direction:column;gap:8px;padding:10px 16px 24px;
+  border-top:1px solid var(--border);background:var(--surface);flex:none;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom));
+}
+#controlsRow{display:flex;align-items:center;gap:10px;width:100%}
+#controls .btn{min-height:48px;font-size:15px;font-weight:600;letter-spacing:1px}
+#controls #btnA{flex:1.2}
+#controls #btnB{flex:1}
+#controls #btnC{flex:1}
+
+/* 分仓买卖滑条 */
+#posBar{display:flex;align-items:center;gap:10px;width:100%}
+#posInfo{font-size:12px;color:var(--text-secondary);white-space:nowrap;min-width:150px;font-family:var(--font-num)}
+#posPct{flex:1;accent-color:var(--accent);height:24px;cursor:pointer}
+#posPctLbl{font-size:13px;font-weight:600;color:var(--accent);min-width:38px;text-align:right;font-family:var(--font-num)}
+
+#progress{font-size:12px;color:var(--text-tertiary);white-space:nowrap;min-width:80px}
+
+/* 加载进度条 */
+.load-track{
+  width:100%;height:4px;border-radius:2px;
+  background:var(--border-subtle);overflow:hidden;margin-bottom:12px;
+}
+.load-fill{
+  height:100%;width:0%;border-radius:2px;
+  background:var(--accent);transition:width .6s ease;
+}
+
+/* 移动端交易记录触发按钮 */
+#btnTrades{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--surface-elevated);border:1px solid var(--border);
+  color:var(--text-secondary);font-size:13px;display:none;
+  align-items:center;justify-content:center;cursor:pointer;flex:none;
+}
+
+/* Toast */
+#toast{
+  position:fixed;left:50%;top:56px;transform:translateX(-50%) translateY(-20px);
+  background:var(--surface-elevated);border:1px solid var(--border);
+  color:var(--text-primary);padding:10px 20px;border-radius:var(--radius-md);
+  font-size:13px;font-weight:500;opacity:0;transition:all .25s;z-index:99;
+  pointer-events:none;box-shadow:var(--shadow-md);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 十字光标提示 */
+#tip{
+  position:absolute;background:var(--surface-elevated);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:11px;line-height:1.6;max-width:220px;
+  z-index:80;opacity:0;pointer-events:none;transition:opacity .15s;
+  box-shadow:var(--shadow-md);color:var(--text-primary);
+}
+#tip.show{opacity:1;pointer-events:auto}
+#tip div{color:var(--text-secondary)}
+#tip div:first-child{color:var(--text-primary);font-weight:500;margin-bottom:2px}
+
+/* ========== 结算界面 ========== */
+.overlay{
+  position:fixed;inset:0;background:var(--overlay-bg);
+  overflow:auto;z-index:100;
+  padding:20px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.panel{
+  max-width:720px;margin:0 auto;background:var(--surface);
+  border-radius:var(--radius-lg);padding:24px 20px;
+  border:1px solid var(--border);box-shadow:var(--shadow-md);
+}
+.panel h2{font-size:20px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+#rating{font-size:36px;font-weight:800}
+.end-stock{
+  font-size:15px;font-weight:600;color:var(--text-primary);margin:-6px 0 4px;
+}
+.end-stock .code{color:var(--text-tertiary);font-family:var(--font-num);font-weight:500;margin-left:6px;font-size:13px}
+
+#endStats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0;
+}
+#endStats .cell{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 8px;text-align:center;
+}
+#endStats .cell span{display:block;font-size:11px;color:var(--text-tertiary);margin-bottom:4px}
+#endStats .cell b{font-size:18px;font-family:var(--font-num);font-weight:600}
+
+#replayChart,#eqChart{
+  width:100%;display:block;background:var(--chart-bg);
+  border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;
+}
+#replayChart{height:260px}#eqChart{height:130px}
+
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--border-subtle)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--text-tertiary);font-weight:500;font-size:11px}
+
+#aiSection{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+#aiSection h4{font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin-bottom:10px}
+#aiContent{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;min-height:60px;
+  color:var(--text-primary);
+}
+#aiContent.dim{color:var(--text-tertiary)}
+#aiContent.loading{color:var(--text-secondary)}
+/* Markdown 渲染样式 */
+#aiContent h1{font-size:16px;font-weight:700;margin:14px 0 8px;color:var(--text-primary)}
+#aiContent h2{font-size:14px;font-weight:700;margin:12px 0 6px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:4px}
+#aiContent h3{font-size:13px;font-weight:600;margin:10px 0 5px;color:var(--text-secondary)}
+#aiContent p{margin:8px 0;line-height:1.7}
+#aiContent strong{color:var(--accent)}
+#aiContent em{color:var(--text-secondary);font-style:italic}
+#aiContent code{background:var(--border-subtle);padding:2px 5px;border-radius:3px;font-size:12px;font-family:monospace}
+#aiContent blockquote{border-left:3px solid var(--accent);padding-left:10px;margin:10px 0;color:var(--text-secondary);font-style:italic;background:var(--accent-soft);padding:10px 10px 10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+#aiContent ul{margin:8px 0;padding-left:18px}
+#aiContent li{margin:4px 0}
+#aiContent table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+#aiContent th,#aiContent td{padding:6px 8px;border:1px solid var(--border);text-align:left}
+#aiContent th{background:var(--bg);font-weight:600;color:var(--text-secondary)}
+#aiContent td{color:var(--text-primary)}
+#btnAI{width:100%;margin-top:10px;min-height:46px}
+
+#endBtns{margin-top:20px;display:flex;gap:10px;justify-content:center}
+#endBtns .btn{min-width:120px;min-height:46px}
+
+/* ========== 每日一题卡片 ========== */
+#dailyCard{
+  background:var(--surface-elevated);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;
+}
+.daily-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.daily-badge{
+  font-size:11px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);
+  padding:3px 10px;border-radius:99px;letter-spacing:1px;
+}
+.daily-date{font-size:11px;color:var(--text-tertiary);font-family:var(--font-num)}
+.daily-body{display:flex;align-items:center;gap:10px}
+.daily-info{flex:1;min-width:0}
+.daily-info b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.daily-info span{font-size:11px;color:var(--text-secondary)}
+.daily-body .btn{flex:none;padding:9px 18px;font-size:13px}
+
+.section-title{
+  font-size:12px;font-weight:500;color:var(--text-secondary);
+  text-transform:uppercase;letter-spacing:0.8px;margin:4px 0 14px;
+  padding-top:14px;border-top:1px solid var(--border-subtle);
+}
+
+/* 首页底部链接 */
+.home-links{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--border-subtle);
+}
+.home-link{
+  background:none;border:none;color:var(--accent);font-size:13px;font-weight:500;
+  cursor:pointer;padding:10px 6px;font-family:inherit;min-height:40px;
+}
+.home-link:active{opacity:.6}
+.home-link-sep{width:1px;height:12px;background:var(--border)}
+
+/* ========== 排行榜独立界面 ========== */
+.lb-tabs{display:flex;gap:8px;margin-bottom:12px}
+.lb-tab{
+  flex:1;padding:9px;font-size:13px;font-weight:500;font-family:inherit;
+  border:1px solid var(--border);background:transparent;color:var(--text-secondary);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all .12s;
+}
+.lb-tab.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.lb-sorts{display:flex;gap:8px;margin-bottom:12px}
+.lb-sort{
+  flex:1;padding:7px;font-size:12px;font-weight:500;font-family:inherit;
+  border:1px solid var(--border);background:transparent;color:var(--text-tertiary);
+  border-radius:999px;cursor:pointer;transition:all .12s;
+}
+.lb-sort.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+#lbDailyHint{
+  font-size:12px;color:var(--text-secondary);background:var(--accent-soft);
+  border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:10px;
+}
+.lb-card{
+  border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+  padding:10px 12px;margin-bottom:8px;background:var(--surface);
+}
+.lb-card.me{border-color:var(--accent);background:var(--accent-soft)}
+.lb-card .l1{display:flex;align-items:center;gap:8px}
+.lb-card .l2{
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:5px;
+  font-size:11px;color:var(--text-secondary);
+}
+.lb-card .l2 b{font-family:var(--font-num);font-weight:600}
+.lb-stock{
+  width:100%;font-size:12px;font-weight:500;color:var(--text-primary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lb-chips{display:flex;gap:10px;flex-wrap:wrap}
+.lb-chips span{white-space:nowrap}
+
+/* ========== 新手指引 ========== */
+/* ========== 新手指引（卡片式重设计） ========== */
+.help-body{max-height:62vh;overflow:auto;padding:2px 4px 2px 2px}
+.help-item{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--bg);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-md);padding:14px;margin-bottom:10px;
+}
+.help-item:last-child{margin-bottom:0}
+.help-ico{
+  width:36px;height:36px;flex:none;border-radius:10px;
+  background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.help-txt{flex:1;min-width:0}
+.help-txt b{display:block;font-size:14px;margin-bottom:4px;color:var(--text-primary)}
+.help-txt p{font-size:12.5px;color:var(--text-secondary);line-height:1.75;margin:0}
+.help-txt p b{display:inline;font-size:12.5px;color:var(--text-primary)}
+/* 评级徽标 */
+.rate-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12.5px;color:var(--text-secondary)}
+.rate-badge{
+  width:26px;height:26px;flex:none;border-radius:8px;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+}
+.rate-s{background:#f59e0b}.rate-a{background:#f97316}.rate-b{background:#3b82f6}
+.rate-c{background:#94a3b8}.rate-d{background:#ef4444}
+
+/* ========== AI 分析卡片式 ========== */
+#aiContent{white-space:normal}
+.ai-banner{
+  background:var(--accent-soft);border-left:3px solid var(--accent);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  padding:12px 14px;font-size:13px;line-height:1.7;color:var(--text-primary);
+  margin-bottom:12px;font-style:italic;
+}
+.ai-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:12px 14px;margin-bottom:10px;
+}
+.ai-card .ai-card-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px;
+}
+.ai-card .ai-card-title::before{
+  content:'';width:4px;height:14px;border-radius:2px;background:var(--accent);flex:none;
+}
+.ai-card p{font-size:13px;line-height:1.75;color:var(--text-secondary);margin:4px 0}
+.ai-card ul{margin:6px 0;padding-left:18px}
+.ai-card li{font-size:13px;line-height:1.75;color:var(--text-secondary);margin:3px 0}
+.ai-card strong{color:var(--text-primary)}
+.ai-card em{color:var(--text-tertiary)}
+.ai-card code{background:var(--border-subtle);padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace}
+#aiContent > h1,#aiContent > h2{
+  font-size:14px;font-weight:700;margin:14px 0 8px;color:var(--text-primary);
+}
+#aiContent > p{font-size:13px;line-height:1.75;color:var(--text-secondary);margin:6px 0}
+#aiContent > ul{margin:6px 0;padding-left:18px}
+#aiContent > ul li{font-size:13px;line-height:1.75;color:var(--text-secondary)}
+#aiContent table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+#aiContent th,#aiContent td{padding:6px 8px;border:1px solid var(--border);text-align:left}
+#aiContent th{background:var(--bg);font-weight:600;color:var(--text-secondary)}
+
+/* ========== 响应式（移动端优先） ========== */
+@media (max-width:768px){
+  #side{display:none}
+  #btnTrades{display:flex}
+  #hud{flex-wrap:wrap;gap:6px 12px;padding:8px 12px}
+  .hud-left{flex:1 1 100%;min-width:0}
+  .hud-right{flex:1 1 100%;justify-content:space-between;gap:8px}
+  .hud-left b{font-size:14px}
+  .hud-stat .num{font-size:15px}
+  #controls{padding:8px 12px 20px;gap:8px}
+  #controls .btn{min-height:52px;font-size:16px}
+  #endStats{grid-template-columns:repeat(3,1fr)}
+  .panel{padding:20px 16px}
+  #replayChart{height:220px}#eqChart{height:110px}
+}
+
+@media (max-width:380px){
+  .hud-stat .lbl{display:none}
+  #endStats{grid-template-columns:repeat(2,1fr)}
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body data-theme="light">
+
+<!-- 开始界面 -->
+<div id="startScreen">
+  <div class="start-card">
+    <div class="logo">K线之王</div>
+    <div class="logo-sub">K-LINE MASTER</div>
+
+    <div id="authBox"></div>
+
+    <!-- 每日一题 -->
+    <div id="dailyCard">
+      <div class="daily-head">
+        <span class="daily-badge">每日一题</span>
+        <span class="daily-date" id="dailyDate">—</span>
+      </div>
+      <div class="daily-body">
+        <div class="daily-info">
+          <b id="dailyName">加载中…</b>
+          <span id="dailyStatus"></span>
+        </div>
+        <button id="btnDaily" class="btn btn-accent" disabled>加载中</button>
+      </div>
+    </div>
+
+    <div class="section-title">自由挑战</div>
+
+    <div class="row">
+      <div class="row-label">标的类型</div>
+      <select id="selType">
+        <option value="mix">随机</option>
+        <option value="stock">个股</option>
+        <option value="etf">ETF</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <div class="row-label">K线周期</div>
+      <select id="selFreq">
+        <option value="d">日线</option>
+        <option value="w">周线</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <div class="row-label">标的显示<span class="info-btn" data-tip="选择隐藏后，挑战过程中不显示标的名称，结算时才揭晓">?</span></div>
+      <div class="toggle-group">
+        <button class="btn on" data-show="1">显示</button>
+        <button class="btn" data-show="0">隐藏</button>
+      </div>
+    </div>
+
+    <div class="load-track" id="loadTrack"><div class="load-fill" id="loadFill"></div></div>
+    <button id="btnStart" class="btn btn-primary" disabled style="width:100%;min-height:50px;font-size:15px">数据加载中…</button>
+
+    <div class="home-links">
+      <button class="home-link" id="btnLb">🏆 排行榜</button>
+      <span class="home-link-sep"></span>
+      <button class="home-link" id="btnRec">📜 最近战绩</button>
+      <span class="home-link-sep"></span>
+      <button class="home-link" id="btnHelp">📖 新手指引</button>
+    </div>
+  </div>
+</div>
+
+<!-- 排行榜独立界面 -->
+<div id="lbScreen" class="overlay hidden">
+  <div class="panel" style="max-width:640px">
+    <h2>排行榜</h2>
+    <div class="lb-tabs">
+      <button class="lb-tab on" data-board="total">总榜</button>
+      <button class="lb-tab" data-board="daily">每日一题</button>
+    </div>
+    <div class="lb-sorts">
+      <button class="lb-sort on" data-sort="excess">按超额收益</button>
+      <button class="lb-sort" data-sort="ret">按总收益</button>
+    </div>
+    <div id="lbDailyHint" class="hidden"></div>
+    <div id="lbFull"></div>
+    <div style="margin-top:16px">
+      <button id="btnLbClose" class="btn btn-secondary" style="width:100%">返回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 最近战绩独立界面（登录后可见） -->
+<div id="recScreen" class="overlay hidden">
+  <div class="panel" style="max-width:560px">
+    <h2>📜 最近战绩</h2>
+    <div id="recFull"></div>
+    <div style="margin-top:16px">
+      <button id="btnRecClose" class="btn btn-secondary" style="width:100%">返回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新手指引 -->
+<div id="helpScreen" class="overlay hidden">
+  <div class="panel" style="max-width:560px">
+    <h2>新手指引</h2>
+    <div class="help-body">
+      <div class="help-item">
+        <div class="help-ico">🎮</div>
+        <div class="help-txt">
+          <b>这是什么？</b>
+          <p>「K线之王」是一个 K 线盘感训练游戏。系统随机抽取一段真实历史行情（个股或 ETF），你只看到 K 线和技术指标，逐根推演，决定买入、卖出或观望，用 100 万虚拟本金检验你的交易水平。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">📈</div>
+        <div class="help-txt">
+          <b>怎么玩？</b>
+          <p>进入挑战后，K 线逐根展开。底部按钮操作：<b>买入</b> / <b>卖出</b> / <b>观望</b>（跳过本根K线）。按钮下方的<b>仓位滑条</b>可控制每次买卖比例（10%~100%，步长 10%）：买入按当前现金的百分比、卖出按当前持仓的百分比成交，支持分批建仓/减仓。买入卖出均为 100 股整手（不允许碎股），遵守 T+1（当日买入部分次日才能卖出），含佣金、印花税和滑点。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">🏆</div>
+        <div class="help-txt">
+          <b>每日一题</b>
+          <p>每天 0 点（北京时间）系统选定一只标的，所有玩家挑战同一段行情、同台竞技，日榜独立排名。每天的题目不一样，记得来打卡！</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">🛠</div>
+        <div class="help-txt">
+          <b>工具栏</b>
+          <p>挑战中可开关 MA / BOLL / VOL / MACD / KDJ 指标，支持日K/周K切换、滚轮缩放、十字光标查看单根K线详情。电脑端快捷键：B 买入、S 卖出、空格 观望。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">📊</div>
+        <div class="help-txt">
+          <b>结算与评级</b>
+          <p>行情走完后结算：收益率、基准（买入持有）、超额收益、最大回撤、胜率，并给出评级。点击「获取 AI 分析」可获得 AI 教练的八维度复盘点评。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">👤</div>
+        <div class="help-txt">
+          <b>账号与战绩</b>
+          <p>微信登录后（当前为演示模式，输入昵称即可），成绩以账号身份上榜，个人中心可查看历史战绩、修改昵称，排行榜自动同步新昵称。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-ico">🎯</div>
+        <div class="help-txt">
+          <b>评级标准</b>
+          <div class="rate-row"><span class="rate-badge rate-s">S</span>超额收益 ≥ 25% 且回撤 ≤ 20%</div>
+          <div class="rate-row"><span class="rate-badge rate-a">A</span>超额收益 ≥ 10%</div>
+          <div class="rate-row"><span class="rate-badge rate-b">B</span>超额收益 ≥ 0%</div>
+          <div class="rate-row"><span class="rate-badge rate-c">C</span>超额收益 ≥ -15%</div>
+          <div class="rate-row"><span class="rate-badge rate-d">D</span>其余情况</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button id="btnHelpClose" class="btn btn-primary" style="width:100%">开始训练</button>
+    </div>
+  </div>
+</div>
+
+<!-- 游戏界面 -->
+<div id="gameScreen" class="hidden">
+  <header id="hud">
+    <div class="hud-left">
+      <b id="hName">—</b>
+      <span class="tag" id="hType"></span>
+      <span class="tag" id="hFreq"></span>
+    </div>
+    <div class="hud-right">
+      <div class="hud-stat">
+        <span class="num" id="hTotal">—</span>
+        <span class="lbl">总资产</span>
+        <span class="lbl hud-split" id="hSplit">现金 — · 股票 —</span>
+      </div>
+      <div class="hud-stat">
+        <span class="num" id="hRet">—</span>
+        <span class="lbl">收益率</span>
+      </div>
+      <div class="hud-stat">
+        <span class="num" id="hHold">—</span>
+        <span class="lbl">持仓</span>
+      </div>
+      <button id="btnTrades" title="交易记录">📋</button>
+      <button id="themeToggle" title="切换主题">☀️</button>
+    </div>
+  </header>
+
+  <div id="main">
+    <div id="chartWrap">
+      <canvas id="chart"></canvas>
+      <div id="tip"></div>
+    </div>
+    <aside id="side">
+      <canvas id="miniEq" style="width:100%;height:70px;display:block;margin-bottom:8px;border-radius:var(--radius-sm);background:var(--chart-bg);border:1px solid var(--border)"></canvas>
+      <h4>交易记录</h4>
+      <ul id="tradeList"></ul>
+    </aside>
+  </div>
+
+  <!-- 移动端交易记录抽屉 -->
+  <div id="tradeDrawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header"><h4>交易记录</h4><button class="btn btn-secondary" id="btnCloseDrawer" style="padding:4px 10px;font-size:12px">关闭</button></div>
+    <div class="drawer-body">
+      <canvas id="miniEqDrawer" style="width:100%;height:70px;display:block;margin-bottom:8px;border-radius:var(--radius-sm);background:var(--chart-bg);border:1px solid var(--border)"></canvas>
+      <ul id="tradeListDrawer"></ul>
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <button class="toolbar-btn on" data-ind="ma">MA</button>
+    <button class="toolbar-btn on" data-ind="boll">BOLL</button>
+    <button class="toolbar-btn on" data-ind="vol">VOL</button>
+    <button class="toolbar-btn on" data-ind="macd">MACD</button>
+    <button class="toolbar-btn on" data-ind="kdj">KDJ</button>
+    <div class="toolbar-divider"></div>
+    <button class="toolbar-btn" id="btnFreq">⇄ 周K</button>
+  </div>
+
+  <footer id="controls">
+    <div id="controlsRow">
+      <span id="progress"></span>
+      <button id="btnC" class="btn btn-secondary">观望</button>
+      <button id="btnB" class="btn btn-secondary">卖出</button>
+      <button id="btnA" class="btn btn-primary">买入</button>
+    </div>
+    <div id="posBar">
+      <span id="posInfo">买入 ¥100万 / --股</span>
+      <input type="range" id="posPct" min="10" max="100" step="10" value="100" list="posTicks">
+      <datalist id="posTicks"><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option><option>100</option></datalist>
+      <span id="posPctLbl">100%</span>
+    </div>
+  </footer>
+</div>
+
+<!-- 结算界面 -->
+<div id="endScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>挑战结算 <span id="rating"></span></h2>
+    <div id="endStock" class="end-stock"></div>
+    <div id="endStats"></div>
+
+    <h4 style="font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:16px 0 8px">走势回放</h4>
+    <canvas id="replayChart"></canvas>
+
+    <h4 style="font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:16px 0 8px">资产曲线</h4>
+    <canvas id="eqChart"></canvas>
+
+    <h4 style="font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:16px 0 8px">交易明细</h4>
+    <table id="tradeTable"></table>
+
+    <div id="lbSection">
+      <h4 style="font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:16px 0 8px">排行榜</h4>
+      <div id="lbSubmit">
+        <input id="lbName" maxlength="12" placeholder="输入昵称，上榜留念">
+        <button id="btnSubmitScore" class="btn btn-accent">提交成绩</button>
+      </div>
+      <div id="lbDone" class="hidden"></div>
+      <div id="lbList"></div>
+    </div>
+
+    <div id="aiSection">
+      <h4>AI 交易分析</h4>
+      <div id="aiContent" class="dim">点击下方按钮获取 AI 分析</div>
+      <button id="btnAI" class="btn btn-accent">获取 AI 分析</button>
+    </div>
+
+    <div id="endBtns">
+      <button id="btnAgain" class="btn btn-primary">再来一局</button>
+      <button id="btnHome" class="btn btn-secondary">返回首页</button>
+    </div>
+  </div>
+</div>
+
+<!-- 微信扫码登录弹窗 -->
+<div id="qrModal" class="overlay hidden">
+  <div class="panel">
+    <h2 style="font-size:17px;justify-content:center">微信扫码登录</h2>
+    <div id="qrBox"></div>
+    <p class="qr-tip">使用微信扫码，授权后自动登录</p>
+    <button id="btnQrClose" class="btn btn-secondary" style="width:100%">取消</button>
+  </div>
+</div>
+
+<!-- 个人中心 -->
+<div id="userScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>个人中心</h2>
+    <div class="uc-head">
+      <div class="avatar" id="ucAvatar">?</div>
+      <div class="uinfo">
+        <div class="uname" id="ucName">—</div>
+        <div class="uid" id="ucId">—</div>
+      </div>
+    </div>
+    <div class="uc-edit">
+      <input id="ucNameInput" maxlength="12" placeholder="修改昵称（1-12个字符）">
+      <button id="btnSaveName" class="btn btn-accent">保存</button>
+    </div>
+    <div class="uc-stats" id="ucStats"></div>
+    <h4 style="font-size:12px;color:var(--text-tertiary);font-weight:500;letter-spacing:0.8px;margin:0 0 8px">过往战绩</h4>
+    <div class="uc-rec" id="ucRecords"></div>
+    <div class="uc-btns">
+      <button id="btnLogout" class="btn btn-secondary">退出登录</button>
+      <button id="btnUcClose" class="btn btn-primary">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="data/manifest.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

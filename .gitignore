@@ -1,0 +1,27 @@
+# Dependencies and local tooling
+node_modules/
+.DS_Store
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.env
+!example.env
+wx-config.json
+
+# Runtime users and business data — production only
+/leaderboard.json
+/records.json
+/sessions.json
+/users.json
+
+# Logs and backups
+*.log
+*.bak
+*.bak*
+backup/
+backups/
+
+# Local test artifacts
+coverage/
